@@ -7,7 +7,7 @@ int **leitorim(const char *arquivim, int *largura, int *altura) {
     FILE *arquivoleu = fopen(arquivim, "r");
     if (!arquivoleu) {
         printf("Erro: O arquivo %s não foi encontrado.\n", arquivim);
-        return (int **)0;
+        return 0;
     }
 
     char typearc[3];
@@ -15,7 +15,7 @@ int **leitorim(const char *arquivim, int *largura, int *altura) {
     if (strcmp(typearc, "P1") != 0) {
         printf("Formato de imagem inválido. O tipo deve ser P1.\n");
         fclose(arquivoleu);
-        return (int **)0;
+        return 0;
     }
 
     char c;
@@ -28,14 +28,14 @@ int **leitorim(const char *arquivim, int *largura, int *altura) {
     if (*largura <= 0 || *altura <= 0) {
         printf("Erro: Dimensões inválidas na imagem.\n");
         fclose(arquivoleu);
-        return (int **)0;
+        return 0;
     }
 
     int **matrizi = malloc(*altura * sizeof(int *));
     if (!matrizi) {
         printf("Erro: Falha na alocação de memória para a matriz de imagem.\n");
         fclose(arquivoleu);
-        return (int **)0;
+        return 0;
     }
 
     for (int i = 0; i < *altura; i++) {
