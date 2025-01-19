@@ -2,8 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <unistd.h> // Para a função access
 
-// Estruturas para armazenar o código de barras
+// Estrutura para armazenar o código de barras
 typedef struct {
     char* codigo;          // Código de barras de 8 dígitos
     int largura_codigo;    // Largura do código de barras
@@ -24,15 +25,16 @@ const char *codigo_dir[] = {
 };
 
 // Função para validar o código de barras inserido
+// Verifica se o código tem 8 dígitos e valida o dígito verificador
 int validar_codigo(const char* codigo) {
     if (strlen(codigo) != 8) {
-        printf("Código deve ter 8 dígitos.\n");
+        printf("Erro: O código deve ter exatamente 8 dígitos.\n");
         return 0;
     }
 
     for (int i = 0; i < 8; i++) {
         if (!isdigit(codigo[i])) {
-            printf("Código contém caracteres não numéricos.\n");
+            printf("Erro: O código contém caracteres não numéricos.\n");
             return 0;
         }
     }
@@ -47,36 +49,8 @@ int validar_codigo(const char* codigo) {
     return digito_verificador == codigo[7] - '0';
 }
 
-// Função para capturar o código do usuário
-void obter_codigo_valido(char** codigo) {
-    *codigo = (char*)malloc(9 * sizeof(char));  // Alocação dinâmica para o código
-    if (*codigo == NULL) {
-        printf("Erro de alocação de memória!\n");
-        exit(1);  // Finaliza o programa em caso de erro na alocação
-    }
-
-    do {
-        printf("Digite o código de 8 dígitos: ");
-        scanf("%8s", *codigo);
-        if (!validar_codigo(*codigo)) {
-            printf("Código inválido.\n");
-        }
-    } while (!validar_codigo(*codigo));
-}
-
-// Função para obter um valor inteiro de forma segura
-int obter_inteiro(const char* mensagem) {
-    int valor;
-    while (1) {
-        printf("%s", mensagem);
-        if (scanf("%d", &valor) == 1) break;
-        printf("Por favor, insira um número válido.\n");
-        while (getchar() != '\n');  // Limpa o buffer de entrada
-    }
-    return valor;
-}
-
-// Função para criar o código de barras no formato PBM e salvar em arquivo
+// Função para criar o código de barras no formato PBM
+// Gera o código de barras com base nas configurações fornecidas
 void criar_codigo_barras(CodigoDeBarras* cdb, FILE* arquivo) {
     int largura_total = cdb->largura_codigo * cdb->pixels_area + 2 * cdb->margem;
     int altura_total = cdb->altura_codigo + 2 * cdb->margem;
@@ -88,25 +62,23 @@ void criar_codigo_barras(CodigoDeBarras* cdb, FILE* arquivo) {
             int dentro_margem_vertical = (y >= cdb->margem && y < altura_total - cdb->margem);
             int dentro_margem_horizontal = (x >= cdb->margem && x < largura_total - cdb->margem);
 
-            // Posições com margens
             if (!dentro_margem_vertical || !dentro_margem_horizontal) {
                 fprintf(arquivo, "0 ");
                 continue;
             }
 
-            // Coordenada ajustada ao início do código de barras
             int posicao = (x - cdb->margem) / cdb->pixels_area;
             char bit = '0';
 
-            if (posicao < 3) {  // Início "101"
+            if (posicao < 3) { // Início "101"
                 bit = "101"[posicao];
-            } else if (posicao < 31) {  // Lado esquerdo
+            } else if (posicao < 31) { // Lado esquerdo
                 bit = codigo_esq[cdb->codigo[(posicao - 3) / 7] - '0'][(posicao - 3) % 7];
-            } else if (posicao < 36) {  // Separador "01010"
+            } else if (posicao < 36) { // Separador "01010"
                 bit = "01010"[posicao - 31];
-            } else if (posicao < 64) {  // Lado direito
+            } else if (posicao < 64) { // Lado direito
                 bit = codigo_dir[cdb->codigo[(posicao - 36) / 7 + 4] - '0'][(posicao - 36) % 7];
-            } else {  // Final "101"
+            } else { // Final "101"
                 bit = "101"[posicao - 64];
             }
 
@@ -116,11 +88,8 @@ void criar_codigo_barras(CodigoDeBarras* cdb, FILE* arquivo) {
     }
 }
 
-// Função para liberar a memória alocada para o código
-void liberar_codigo(char* codigo) {
-    free(codigo);
-}
-
+// Função principal
+// Configura e gera o código de barras com base nos argumentos fornecidos
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         printf("Uso: %s <identificador> [margem] [pixels_por_area] [altura] [arquivo_saida]\n", argv[0]);
@@ -130,7 +99,7 @@ int main(int argc, char* argv[]) {
     CodigoDeBarras cdb;
     cdb.codigo = argv[1];
     if (!validar_codigo(cdb.codigo)) {
-        printf("Identificador inválido. Certifique-se de que ele tenha 8 dígitos e um dígito verificador correto.\n");
+        printf("Erro: Identificador inválido. Certifique-se de que ele tenha 8 dígitos e um dígito verificador correto.\n");
         return 1;
     }
 
@@ -140,6 +109,16 @@ int main(int argc, char* argv[]) {
     cdb.largura_codigo = 67;
 
     const char* nome_arquivo = (argc > 5) ? argv[5] : "codigo_barras.pbm";
+
+    if (access(nome_arquivo, F_OK) == 0) {
+        char resposta;
+        printf("O arquivo %s já existe. Deseja sobrescrevê-lo? (s/n): ", nome_arquivo);
+        scanf(" %c", &resposta);
+        if (resposta != 's' && resposta != 'S') {
+            printf("Operação cancelada. O arquivo existente não foi sobrescrito.\n");
+            return 1;
+        }
+    }
 
     FILE* arquivo = fopen(nome_arquivo, "w");
     if (!arquivo) {

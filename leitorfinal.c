@@ -3,6 +3,7 @@
 #include <string.h>
 
 // Função para ler o arquivo PBM e alocar a matriz de pixels
+// Essa função verifica o formato do arquivo, lê suas dimensões e aloca memória para armazenar os pixels.
 int **carregarImagemPBM(const char *nomeArquivo, int *largura, int *altura) {
     FILE *arquivo = fopen(nomeArquivo, "r");
     if (!arquivo) {
@@ -39,6 +40,7 @@ int **carregarImagemPBM(const char *nomeArquivo, int *largura, int *altura) {
         return NULL;
     }
 
+    // Preenche a matriz com os dados do arquivo PBM
     for (int i = 0; i < *altura; i++) {
         imagem[i] = malloc(*largura * sizeof(int));
         if (!imagem[i]) {
@@ -68,6 +70,7 @@ int **carregarImagemPBM(const char *nomeArquivo, int *largura, int *altura) {
 }
 
 // Função para calcular a margem superior da imagem
+// Essa função localiza a primeira linha contendo pixels pretos (valor 1) para determinar a margem superior.
 int calcularMargemSuperior(int **imagem, int largura, int altura) {
     for (int i = 0; i < altura; i++) {
         int soma = 0;
@@ -82,6 +85,7 @@ int calcularMargemSuperior(int **imagem, int largura, int altura) {
 }
 
 // Função para decodificar o código de barras presente na matriz
+// Essa função analisa os pixels da matriz para reconstruir os dígitos representados no código de barras.
 void decodificarCodigoBarras(int **imagem, int largura, int altura) {
     int margemSuperior = calcularMargemSuperior(imagem, largura, altura);
     if (margemSuperior >= altura) {
@@ -90,10 +94,10 @@ void decodificarCodigoBarras(int **imagem, int largura, int altura) {
     }
 
     int larguraUtil = largura - 2 * margemSuperior;
-    int larguraSegmento = (larguraUtil + 66) / 67;
-    int linhaCentral = margemSuperior + altura / 2;
+    int larguraSegmento = (larguraUtil + 66) / 67; // Calcula a largura de cada segmento do código
+    int linhaCentral = margemSuperior + altura / 2; // Determina a linha central onde o código está
 
-    char bits[68] = {0};
+    char bits[68] = {0}; // Armazena os bits lidos do código de barras
     for (int i = 0; i < 67; i++) {
         int brancos = 0, pretos = 0;
         for (int j = 0; j < larguraSegmento; j++) {
@@ -107,7 +111,7 @@ void decodificarCodigoBarras(int **imagem, int largura, int altura) {
         bits[i] = (pretos > brancos) ? '1' : '0';
     }
 
-    // Valida estrutura do código de barras
+    // Valida a estrutura do código de barras: marcadores de início, central e fim
     if (strncmp(bits, "101", 3) != 0 || strncmp(bits + 64, "101", 3) != 0 || strncmp(bits + 31, "01010", 5) != 0) {
         printf("Erro: Estrutura do código de barras inválida.\n");
         return;
@@ -117,6 +121,7 @@ void decodificarCodigoBarras(int **imagem, int largura, int altura) {
     const char *padraoEsquerda[] = {"0001101", "0011001", "0010011", "0111101", "0100011", "0110001", "0101111", "0111011", "0110111", "0001011"};
     const char *padraoDireita[] = {"1110010", "1100110", "1101100", "1000010", "1011100", "1001110", "1010000", "1000100", "1001000", "1110100"};
 
+    // Decodifica os dígitos usando os padrões L-code (esquerda) e R-code (direita)
     for (int grupo = 0; grupo < 2; grupo++) {
         int inicio = (grupo == 0) ? 3 : 36;
         const char **padrao = (grupo == 0) ? padraoEsquerda : padraoDireita;
@@ -130,7 +135,7 @@ void decodificarCodigoBarras(int **imagem, int largura, int altura) {
                 }
             }
             if (!encontrado) {
-                printf("?");
+                printf("?"); // Marca dígitos não identificados com ?
             }
         }
     }
@@ -138,13 +143,14 @@ void decodificarCodigoBarras(int **imagem, int largura, int altura) {
 }
 
 // Função principal
-int main() {
-    char nomeArquivo[100];
-    printf("Digite o nome do arquivo PBM (máximo 99 caracteres): ");
-    if (scanf(" %99s", nomeArquivo) != 1) {
-        printf("Erro: Entrada inválida.\n");
+// Essa função inicializa o programa, verifica argumentos e realiza as operações de leitura e decodificação.
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Uso: %s <nome_arquivo_pbm>\n", argv[0]);
         return 1;
     }
+
+    const char *nomeArquivo = argv[1];
 
     int largura, altura;
     int **imagem = carregarImagemPBM(nomeArquivo, &largura, &altura);
@@ -154,6 +160,7 @@ int main() {
 
     decodificarCodigoBarras(imagem, largura, altura);
 
+    // Libera a memória alocada para a matriz de pixels
     for (int i = 0; i < altura; i++) {
         free(imagem[i]);
     }
