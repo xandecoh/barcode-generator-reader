@@ -8,11 +8,11 @@
 #define DEFAULT_HEIGHT 50
 #define DEFAULT_FILENAME "codigo_de_de_barras.pbm"
 
-// Tabelas de codificação L-code e R-code
+// Tabelas de codificaï¿½ï¿½o L-code e R-code
 const char *L_CODE[10] = {"0001101", "0011001", "0010011", "0111101", "0100011", "0110001", "0101111", "0111011", "0110111", "0001011"};
 const char *R_CODE[10] = {"1110010", "1100110", "1101100", "1000010", "1011100", "1001110", "1010000", "1000100", "1001000", "1110100"};
 
-// Função para validar o identificador e calcular o dígito verificador
+// Funï¿½ï¿½o para validar o identificador e calcular o dï¿½gito verificador
 int calcular_digito_verificador(const char *identificador) {
     int soma = 0;
     for (int i = 0; i < 7; i++) {
@@ -31,10 +31,10 @@ bool validar_identificador(const char *identificador) {
     return (digito_verificador == identificador[7] - '0');
 }
 
-// Função para gerar o código de barras em formato PBM
+// Funï¿½ï¿½o para gerar o cï¿½digo de barras em formato PBM
 void gerar_codigo_pbm(const char *identificador, int espacamento, int largura_modulo, int altura, const char *nome_arquivo) {
-    // Largura total do código de barras
-    int largura_codigo = 3 + (7 * 4) + 5 + (7 * 4) + 3; // Marcadores + dígitos
+    // Largura total do cï¿½digo de barras
+    int largura_codigo = 3 + (7 * 3) + 4 + (7 * 3) + 3; // Marcadores + dï¿½gitos
     int largura_total = largura_codigo * largura_modulo + 2 * espacamento;
     int altura_total = altura + 2 * espacamento;
 
@@ -44,15 +44,15 @@ void gerar_codigo_pbm(const char *identificador, int espacamento, int largura_mo
         exit(EXIT_FAILURE);
     }
 
-    // Cabeçalho PBM
+    // Cabeï¿½alho PBM
     fprintf(arquivo, "P1\n%d %d\n", largura_total, altura_total);
 
-    // Gerar a matriz do código de barras
+    // Gerar a matriz do cï¿½digo de barras
     for (int y = 0; y < altura_total; y++) {
         for (int x = 0; x < largura_total; x++) {
             bool preenchido = false;
 
-            // Verificar espaçamento superior e inferior
+            // Verificar espaï¿½amento superior e inferior
             if (y < espacamento || y >= altura_total - espacamento) {
                 preenchido = false;
             } else if (x < espacamento || x >= largura_total - espacamento) {
@@ -63,13 +63,13 @@ void gerar_codigo_pbm(const char *identificador, int espacamento, int largura_mo
                 int sub_pos = pos_x % 7;
 
                 if (area == 0 || area == 8) {
-                    // Marcadores de início e fim (101)
+                    // Marcadores de inï¿½cio e fim (101)
                     preenchido = (sub_pos == 0 || sub_pos == 2);
                 } else if (area == 4) {
                     // Marcador central (01010)
                     preenchido = (sub_pos == 1 || sub_pos == 3);
                 } else {
-                    // Dígitos (L-code ou R-code)
+                    // Dï¿½gitos (L-code ou R-code)
                     int indice_digito = (area < 4) ? area - 1 : area - 5;
                     int digito = identificador[indice_digito] - '0';
                     const char *codigo = (area < 4) ? L_CODE[digito] : R_CODE[digito];
@@ -77,7 +77,7 @@ void gerar_codigo_pbm(const char *identificador, int espacamento, int largura_mo
                 }
             }
 
-            fprintf(arquivo, "%d ", preenchido ? 1 : 0); // Adicionando espaço para melhor formatação
+            fprintf(arquivo, "%d ", preenchido ? 1 : 0); // Adicionando espaï¿½o para melhor formataï¿½ï¿½o
         }
         fprintf(arquivo, "\n");
     }
@@ -99,7 +99,7 @@ int main(int argc, char *argv[]) {
     const char *nome_arquivo = (argc > 5) ? argv[5] : DEFAULT_FILENAME;
 
     if (!validar_identificador(identificador)) {
-        fprintf(stderr, "Identificador inválido. Certifique-se de que ele possui 8 dígitos numéricos e um dígito verificador válido.\n");
+        fprintf(stderr, "Identificador invï¿½lido. Certifique-se de que ele possui 8 dï¿½gitos numï¿½ricos e um dï¿½gito verificador vï¿½lido.\n");
         return EXIT_FAILURE;
     }
 
